@@ -1,0 +1,22 @@
+# python library to load .env file into our project
+python-dotenv
+
+langchain
+langchain-core
+langchain-community
+
+## LLM provider
+
+langchain-groq
+langchain-text-splitters
+
+# vector store
+
+faiss-cpu
+
+# notebook
+jupyter
+ipykernel
+
+#web app
+streamlit
