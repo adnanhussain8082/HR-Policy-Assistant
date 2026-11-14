@@ -1,0 +1,1 @@
+# this __init__.py file is required to make this hr_assistant folder an importable package so we can literally import files like config.py into main.py(which lies outside of this hr_assistant folder)
