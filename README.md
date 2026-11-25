@@ -8,6 +8,7 @@ The project provides:
 - A command-line demo with example HR questions.
 - A reusable RAG pipeline split into small Python modules.
 - A local FAISS vector index that is built once and reused on later runs.
+- Per-run application logs, with optional LangSmith tracing for agent activity.
 - A bundled sample policy covering leave, remote work, probation, notice periods, reimbursements, conduct, holidays, and the exit process.
 
 > **Important:** This repository contains a demo policy document. It is not a substitute for official HR guidance, an employment contract, or legal advice.
@@ -23,6 +24,7 @@ The assistant follows this flow when it starts:
 5. Create a retriever that returns the three most relevant chunks for a question.
 6. Expose the retriever as the `search_hr_policy` LangChain tool.
 7. Ask the Groq-hosted language model to use that tool before answering.
+8. Write application events to a dated local log file. If LangSmith tracing is enabled, LangChain also records agent and model activity in the configured LangSmith project.
 
 The system prompt instructs the assistant to say that it does not know when the answer is not present in the retrieved policy content.
 
@@ -43,6 +45,9 @@ question -> retriever -> search_hr_policy tool -> Groq LLM -> answer
                          +------------------------------+
                          |
               app.py (Streamlit) / main.py (CLI)
+
+                  logger.py -> console + logs/YYYY-MM-DD/
+              tracing.py -> optional LangSmith project
 ```
 
 ### Project structure
@@ -62,10 +67,13 @@ question -> retriever -> search_hr_policy tool -> Groq LLM -> answer
 │   ├── document_loader.py    # Loads the policy text
 │   ├── embeddings.py         # Configures Jina embeddings
 │   ├── llm.py                # Configures the Groq chat model
+│   ├── logger.py             # Configures console and per-run file logging
 │   ├── pipeline.py           # Builds the complete assistant
 │   ├── splitter.py           # Splits documents into chunks
+│   ├── tracing.py            # Reports whether LangSmith tracing is enabled
 │   ├── tools.py              # Defines the policy search tool
 │   └── vector_store.py       # Builds, saves, and loads FAISS
+├── docs/                     # Notes on logging and LangSmith tracing
 └── rag.ipynb                 # Notebook for experimenting with the RAG workflow
 ```
 
@@ -129,6 +137,33 @@ The main runtime settings are in `hr_assistant/config.py`:
 | `CHUNK_SIZE` | `500` | Maximum chunk size |
 | `CHUNK_OVERLAP` | `50` | Overlap between chunks |
 | `TOP_K_RESULTS` | `3` | Number of chunks retrieved per question |
+| `LANGSMITH_TRACING` | `false` | Set to `true` to enable LangSmith tracing |
+| `LANGSMITH_API_KEY` | — | LangSmith API key (required only when tracing is enabled) |
+| `LANGSMITH_PROJECT` | — | LangSmith project name for traces |
+
+LangSmith settings are optional. To enable tracing, add the following to `.env` and set your own API key and project name:
+
+```dotenv
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=your_langsmith_api_key
+LANGSMITH_PROJECT=hr-policy-assistant
+```
+
+LangChain automatically sends agent, tool, and model traces to LangSmith when tracing is enabled. The application logs whether tracing is active when it builds the assistant.
+
+## Logging and tracing
+
+The shared logger writes `INFO`-level events to the console and to a new file for each run, organized by date:
+
+```text
+logs/
+└── YYYY-MM-DD/
+    └── run_HHMMSS.log
+```
+
+The logs record pipeline activity, policy search queries, user questions, and final answers. The `logs/` directory is ignored by Git. Treat these files as sensitive and avoid entering confidential employee information; delete or protect generated logs according to your organization's data-handling requirements.
+
+LangSmith tracing is separate from local logging and is off by default. When enabled, traces are uploaded to LangSmith and can include model and tool inputs and outputs. Only enable it if your organization's data policies permit sending that information to the configured LangSmith account. See [docs/01_logger.md](docs/01_logger.md) and [docs/02_langsmith.md](docs/02_langsmith.md) for additional background.
 
 ## Run the application
 
