@@ -31,9 +31,11 @@ DATA_FILE_PATH = os.path.join("data", "hr_policy.txt")
 # 2. persistent memory - vectors 100gb - ingestion
 # 3. cloud memory
 
+# Qdrant cloud vector db
 
-VECTOR_STORE_PATH = os.path.join("data", "faiss_index")
-
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "hr_policy")
 
 ##MODELS
 # LLM AND EMBEDDING MODEL 
